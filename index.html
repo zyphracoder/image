@@ -41,7 +41,7 @@ canvas{
 <div class="container">
 <h2>🔐 Zyphra Secure Image Tool</h2>
 
-<!-- ✅ FIXED: no restriction (important for .bin on mobile) -->
+<!-- No restriction → works everywhere -->
 <input type="file" id="upload">
 
 <input type="text" id="imgKey" placeholder="Enter Secret Key">
@@ -57,18 +57,18 @@ canvas{
 const canvas = document.getElementById("canvas")
 const ctx = canvas.getContext("2d")
 
-// Auto filename (only for images)
+// Auto filename
 document.getElementById('upload').onchange = function(){
   const file = this.files[0]
   if(!file) return
 
   if(file.type.startsWith("image")){
     const name = file.name.replace(/\.[^/.]+$/, "")
-    document.getElementById('fileName').value = name + "-encrypted"
+    document.getElementById('fileName').value = name + "-secure"
   }
 }
 
-// 🔑 Generate key
+// 🔑 Key generator
 async function getKey(password, salt){
   const enc = new TextEncoder()
 
@@ -94,7 +94,7 @@ async function getKey(password, salt){
   )
 }
 
-// 🔒 Encrypt
+// 🔒 Encrypt → Save as PNG
 async function encryptImage(){
   const file = document.getElementById('upload').files[0]
   const password = document.getElementById('imgKey').value
@@ -115,16 +115,18 @@ async function encryptImage(){
     data
   )
 
+  // Combine salt + iv + encrypted
   const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength)
   combined.set(salt, 0)
   combined.set(iv, salt.length)
   combined.set(new Uint8Array(encrypted), salt.length + iv.length)
 
-  const blob = new Blob([combined])
+  // ⚡ Save as PNG (key trick)
+  const blob = new Blob([combined], { type: "image/png" })
   const url = URL.createObjectURL(blob)
 
   const nameInput = document.getElementById('fileName').value.trim()
-  const finalName = nameInput ? nameInput + ".bin" : "encrypted-image.bin"
+  const finalName = nameInput ? nameInput + ".png" : "secure-image.png"
 
   const a = document.createElement("a")
   a.href = url
@@ -137,7 +139,7 @@ async function decryptImage(){
   const file = document.getElementById('upload').files[0]
   const password = document.getElementById('imgKey').value
 
-  if(!file){ alert("Upload .bin file"); return }
+  if(!file){ alert("Upload encrypted PNG"); return }
   if(!password){ alert("Enter key"); return }
 
   try{
